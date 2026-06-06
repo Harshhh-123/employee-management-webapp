@@ -4,6 +4,8 @@ import net.javaguides.springboot.model.AttendanceLog;
 import net.javaguides.springboot.service.AttendanceService;
 import net.javaguides.springboot.service.ActiveWorkerService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.util.Map;
@@ -62,9 +64,17 @@ public class AttendanceController {
     }
 
     @GetMapping("/log")
-    public ResponseEntity<?> getAttendanceLog(@RequestParam Long workerId) {
-        return ResponseEntity.ok(
-                attendanceService.getAttendanceHistory(workerId)
-        );
+    public ResponseEntity<?> getAttendanceLog(
+            @RequestParam Long workerId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        var result = attendanceService.getAttendanceHistoryPaged(workerId, pageable);
+        return ResponseEntity.ok(Map.of(
+                "content", result.getContent(),
+                "totalElements", result.getTotalElements(),
+                "totalPages", result.getTotalPages(),
+                "currentPage", result.getNumber()
+        ));
     }
 }

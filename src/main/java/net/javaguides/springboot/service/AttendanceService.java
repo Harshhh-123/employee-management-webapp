@@ -9,9 +9,10 @@ import net.javaguides.springboot.repository.OvertimeEntryRepository;
 import net.javaguides.springboot.repository.WorkerRepository;
 import net.javaguides.springboot.repository.SiteRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
 import java.time.LocalDateTime;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
@@ -101,5 +102,10 @@ public class AttendanceService {
 
     public List<AttendanceLog> getAttendanceHistory(Long workerId) {
         return attendanceLogRepository.findByWorkerId(workerId);
+    }
+
+    public Page<AttendanceLog> getAttendanceHistoryPaged(
+            Long workerId, Pageable pageable) {
+        return attendanceLogRepository.findByWorkerId(workerId, pageable);
     }
 }
