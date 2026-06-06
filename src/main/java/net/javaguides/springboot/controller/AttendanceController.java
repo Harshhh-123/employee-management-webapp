@@ -2,10 +2,10 @@ package net.javaguides.springboot.controller;
 
 import net.javaguides.springboot.model.AttendanceLog;
 import net.javaguides.springboot.service.AttendanceService;
+import net.javaguides.springboot.service.ActiveWorkerService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
 import java.util.Map;
 
 @RestController
@@ -15,12 +15,19 @@ public class AttendanceController {
     @Autowired
     private AttendanceService attendanceService;
 
+    @Autowired
+    private ActiveWorkerService activeWorkerService;
+
     @PostMapping("/clock-in")
     public ResponseEntity<?> clockIn(@RequestBody Map<String, Long> request) {
         try {
             Long workerId = request.get("workerId");
             Long siteId = request.get("siteId");
             AttendanceLog log = attendanceService.clockIn(workerId, siteId);
+            activeWorkerService.addActiveWorker(
+                    workerId, siteId,
+                    log.getClockIn().toString()
+            );
             return ResponseEntity.ok(log);
         } catch (RuntimeException e) {
             if (e.getMessage().equals("DUPLICATE_CLOCK_IN")) {
@@ -41,11 +48,17 @@ public class AttendanceController {
         try {
             Long workerId = request.get("workerId");
             AttendanceLog log = attendanceService.clockOut(workerId);
+            activeWorkerService.removeActiveWorker(workerId);
             return ResponseEntity.ok(log);
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest()
                     .body(Map.of("error", e.getMessage()));
         }
+    }
+
+    @GetMapping("/active")
+    public ResponseEntity<?> getActiveWorkers() {
+        return ResponseEntity.ok(activeWorkerService.getActiveWorkers());
     }
 
     @GetMapping("/log")
