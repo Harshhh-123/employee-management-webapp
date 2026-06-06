@@ -3,7 +3,7 @@ package net.javaguides.springboot.model;
 import jakarta.persistence.*;
 
 @Entity
-@Table(name = "role")
+@Table(name = "roles")
 public class Role {
 	
 	@Id
