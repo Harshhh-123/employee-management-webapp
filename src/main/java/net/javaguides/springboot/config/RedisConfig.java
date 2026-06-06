@@ -1,17 +1,17 @@
 package net.javaguides.springboot.config;
 
+import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.EnableCaching;
+import org.springframework.cache.interceptor.CacheErrorHandler;
+import org.springframework.cache.support.SimpleCacheManager;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.data.redis.cache.RedisCacheConfiguration;
+import org.springframework.data.redis.cache.RedisCacheManager;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
-import org.springframework.cache.CacheManager;
-import org.springframework.cache.interceptor.CacheErrorHandler;
-import org.springframework.cache.interceptor.SimpleCacheErrorHandler;
-import org.springframework.data.redis.cache.RedisCacheManager;
-import org.springframework.data.redis.cache.RedisCacheConfiguration;
 import java.time.Duration;
 
 @Configuration
@@ -30,17 +30,39 @@ public class RedisConfig {
 
     @Bean
     public CacheManager cacheManager(RedisConnectionFactory factory) {
-        RedisCacheConfiguration config = RedisCacheConfiguration
-                .defaultCacheConfig()
-                .entryTtl(Duration.ofHours(16))
-                .disableCachingNullValues();
-        return RedisCacheManager.builder(factory)
-                .cacheDefaults(config)
-                .build();
+        try {
+            RedisCacheConfiguration config = RedisCacheConfiguration
+                    .defaultCacheConfig()
+                    .entryTtl(Duration.ofHours(16))
+                    .disableCachingNullValues();
+            return RedisCacheManager.builder(factory)
+                    .cacheDefaults(config)
+                    .build();
+        } catch (Exception e) {
+            // Redis unavailable - use no-op cache
+            return new SimpleCacheManager();
+        }
     }
 
     @Bean
     public CacheErrorHandler errorHandler() {
-        return new SimpleCacheErrorHandler();
+        return new org.springframework.cache.interceptor.SimpleCacheErrorHandler() {
+            @Override
+            public void handleCacheGetError(RuntimeException e,
+                                            org.springframework.cache.Cache cache, Object key) {
+                System.err.println("Cache GET error: " + e.getMessage());
+            }
+            @Override
+            public void handleCachePutError(RuntimeException e,
+                                            org.springframework.cache.Cache cache,
+                                            Object key, Object value) {
+                System.err.println("Cache PUT error: " + e.getMessage());
+            }
+            @Override
+            public void handleCacheEvictError(RuntimeException e,
+                                              org.springframework.cache.Cache cache, Object key) {
+                System.err.println("Cache EVICT error: " + e.getMessage());
+            }
+        };
     }
 }
